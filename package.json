@@ -1,0 +1,19 @@
+{
+  "name": "wifi-reset",
+  "version": "1.0.0",
+  "description": "Monitors connection to internet and resets wifi when internet is down",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lesenther/node-wifi-reset.git"
+  },
+  "author": "Logan Esenther (logan@cal.berkeley.edu)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lesenther/node-wifi-reset/issues"
+  },
+  "homepage": "https://github.com/lesenther/node-wifi-reset#readme"
+}
