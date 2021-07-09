@@ -11,6 +11,7 @@ const defaults = {
   verbose       : false,  // Show log messages
   resetCommand  : 'nmcli radio wifi off && nmcli radio wifi on', // Command to run when internet is down
   hostsList     : 'agtos0'.split('').map(char => `${char}.co`),  // Hosts to randomly pick from
+  notify        : _ => console.log(_), // Function to send notifications
 };
 
 /**
@@ -22,7 +23,9 @@ function autoReset(config = {}) {
   config = { ...defaults, ...config };
 
   // Print info
-  console.log(`Monitoring internet connection...${config.verbose ? ' (verbose)' : ''}`);
+  if (config.verbose) {
+    config.notify(`Monitoring internet connection...${config.verbose ? ' (verbose)' : ''}`);
+  }
 
   // Immediately check state
   checkConnectionMulti(config);
@@ -44,7 +47,7 @@ function checkConnectionMulti(config) {
     )))
   ).then(results => {
     if (config.verbose) {
-      console.log(`Responses:`, results.map(v => +v).join(''));
+      config.notify(`Responses:`, results.map(v => +v).join(''));
     }
 
     return !results.filter(_ => _).length ? reset(config, results) : 0
@@ -59,7 +62,7 @@ function checkConnectionMulti(config) {
 */
 function checkConnection(config) {
   if (config.verbose) {
-    console.log(`Checking connection... [${new Date().toLocaleString()}]`);
+    config.notify(`Checking connection... [${new Date().toLocaleString()}]`);
   }
 
   // Choose a host to check at random 
@@ -76,7 +79,7 @@ function checkConnection(config) {
 * @param {array} checks 
 */
 function reset(config, checks = false) {
-  console.log(`Running reset... [${new Date().toLocaleString()}]`, checks.map(v => +v).join(''));
+  config.notify(`Running reset... [${new Date().toLocaleString()}]`, checks.map(v => +v).join(''));
 
   execSync(config.resetCommand);
 }
