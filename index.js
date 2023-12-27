@@ -16,9 +16,9 @@ const defaults = {
 
 /**
 * Continuously monitor the internet connection and reset the device when offline.
-* 
+*
 */
-function autoReset(config = {}) { 
+function autoReset(config = {}) {
   // Import user config replacing system params
   config = { ...defaults, ...config };
 
@@ -36,13 +36,13 @@ function autoReset(config = {}) {
 
 /**
 * Perform multiple connection checks and reset only if they all fail
-* 
-* @param {object} config 
+*
+* @param {object} config
 */
 function checkConnectionMulti(config) {
   return Promise.all([...Array(config.totalChecks).keys()]
     .map(t => new Promise(r => setTimeout(
-      _ => checkConnection(config).then(r), 
+      _ => checkConnection(config).then(r),
       t * config.checkSpacing * 1000
     )))
   ).then(results => {
@@ -55,28 +55,28 @@ function checkConnectionMulti(config) {
 }
 
 /**
-* Check if we are connected to the internet by attempting to resolve the dns 
+* Check if we are connected to the internet by attempting to resolve the dns
 * for one random host.
-* 
-* @param {object} config 
+*
+* @param {object} config
 */
 function checkConnection(config) {
   if (config.verbose) {
     config.notify(`Checking connection... [${new Date().toLocaleString()}]`);
   }
 
-  // Choose a host to check at random 
+  // Choose a host to check at random
   const host = config.hostsList[Math.floor(Math.random() * config.hostsList.length)];
-  
-  return new Promise(r => dns.resolve(host, e => r(!e)) 
+
+  return new Promise(r => dns.resolve(host, e => r(!e))
     && setTimeout(_ => r(false), config.checkTimeout * 1000));
 }
 
 /**
 * Reset the wireless adapter
-* 
-* @param {object} config 
-* @param {array} checks 
+*
+* @param {object} config
+* @param {array} checks
 */
 function reset(config, checks = false) {
   config.notify(`Running reset... [${new Date().toLocaleString()}]`, checks.map(v => +v).join(''));
