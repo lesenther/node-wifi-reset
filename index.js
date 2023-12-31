@@ -17,7 +17,7 @@ const defaults = {
 * Continuously monitor the internet connection and reset the device when offline.
 *
 */
-function autoReset(config = {}) {
+async function autoReset(config = {}) {
   // Import user config replacing system params
   config = { ...defaults, ...config };
 
@@ -26,11 +26,10 @@ function autoReset(config = {}) {
     config.notify(`Monitoring internet connection...${config.verbose ? ' (verbose)' : ''}`);
   }
 
-  // Immediately check state
-  checkConnectionMulti(config);
-
-  // Schedule regular checks
-  setInterval(_ => checkConnectionMulti(config), config.checkInterval * 1000);
+  while (true) {
+    await checkConnectionMulti(config)
+    await new Promise(r => setTimeout(r, 1000));
+  }
 }
 
 /**
