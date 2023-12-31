@@ -1,6 +1,5 @@
 // Core modules
 const { execSync } = require('child_process');
-const dns = require('dns');
 
 // System config
 const defaults = {
@@ -68,8 +67,15 @@ function checkConnection(config) {
   // Choose a host to check at random
   const host = config.hostsList[Math.floor(Math.random() * config.hostsList.length)];
 
-  return new Promise(r => dns.resolve(host, e => r(!e))
-    && setTimeout(_ => r(false), config.checkTimeout * 1000));
+  return new Promise(r => {
+    try {
+      execSync(`ping -c 1 -w ${config.checkTimeout} ${host}`, { stdio: 'ignore' })
+    } catch (error) {
+      return r(false)
+    }
+
+    return r(true)
+  });
 }
 
 /**
