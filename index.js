@@ -3,14 +3,13 @@ const { execSync } = require('child_process');
 
 // System config
 const defaults = {
-  totalChecks   : 12,     // Total number of checks to make at each interval
-  checkSpacing  : 0.5,    // Seconds between each check
-  checkTimeout  : 2,      // Maximum number of seconds a check can take before failing
-  checkInterval : 10,     // Total seconds for each round of checks
+  totalChecks   : 4,     // Total number of checks to make at each interval
+  checkSpacing  : 1,    // Seconds between each check
+  checkTimeout  : 3,      // Maximum number of seconds a check can take before failing
   verbose       : false,  // Show log messages
   resetCommand  : 'nmcli radio wifi off && nmcli radio wifi on', // Command to run when internet is down
-  hostsList     : 'agtos0'.split('').map(char => `${char}.co`),  // Hosts to randomly pick from
-  notify        : _ => console.log(_), // Function to send notifications
+  hostsList     : 'agtos'.split('').map(char => `${char}.co`),  // Hosts to randomly pick from
+  notify        : (message, arr = '') => console.log(`[${new Date().toLocaleTimeString()}] ${message}`, arr), // Function to send notifications
 };
 
 /**
@@ -60,7 +59,7 @@ function checkConnectionMulti(config) {
 */
 function checkConnection(config) {
   if (config.verbose) {
-    config.notify(`Checking connection... [${new Date().toLocaleString()}]`);
+    config.notify(`Checking connection...`);
   }
 
   // Choose a host to check at random
@@ -84,9 +83,9 @@ function checkConnection(config) {
 * @param {array} checks
 */
 function reset(config, checks = false) {
-  config.notify(`Running reset... [${new Date().toLocaleString()}]`, checks.map(v => +v).join(''));
+  config.notify(`Running reset...`, checks.map(v => +v).join(''));
 
   execSync(config.resetCommand);
 }
 
-module.exports = autoReset;
+module.exports = autoReset
