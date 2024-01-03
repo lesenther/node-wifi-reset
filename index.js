@@ -1,101 +1,105 @@
-// Core modules
-const { execSync } = require('child_process');
+const { execSync } = require('child_process')
 
-// System config
-const defaults = {
-  totalChecks   : 4,     // Total number of checks to make at each interval
-  checkSpacing  : 1,    // Seconds between each check
-  checkTimeout  : 3,      // Maximum number of seconds a check can take before failing
-  verbose       : false,  // Show log messages
-  resetCommand  : 'nmcli radio wifi off && nmcli radio wifi on', // Command to run when internet is down
-  hostsList     : 'agtos'.split('').map(char => `${char}.co`),  // Hosts to randomly pick from
-  notify        : (message, arr = '') => console.log(`[${new Date().toLocaleTimeString()}] ${message}`, arr), // Function to send notifications
-};
+class wifiReset {
 
-const logs = {
-  total : 0,
-  average: 0,
-}
-
-/**
-* Continuously monitor the internet connection and reset the device when offline.
-*
-*/
-async function autoReset(config = {}) {
-  // Import user config replacing system params
-  config = { ...defaults, ...config };
-
-  // Print info
-  if (config.verbose) {
-    config.notify(`Monitoring internet connection...${config.verbose ? ' (verbose)' : ''}`);
-  }
-
-  while (true) {
-    await checkConnectionMulti(config)
-    await new Promise(r => setTimeout(r, 1000));
-  }
-}
-
-/**
-* Perform multiple connection checks and reset only if they all fail
-*
-* @param {object} config
-*/
-function checkConnectionMulti(config) {
-  return Promise.all([...Array(config.totalChecks).keys()]
-    .map(t => new Promise(r => setTimeout(
-      _ => checkConnection(config).then(r),
-      t * config.checkSpacing * 1000
-    )))
-  ).then(results => {
-    const res = results.map(v => +v)
-    const sum = res.reduce((a, b) => a + b)
-    logs.total++;
-    logs.average = logs.average * (logs.total - 1) / logs.total + (sum / config.totalChecks) / logs.total;
-
-    if (config.verbose) {
-      config.notify(`Responses:  ${res.join('')}  ${logs.average.toFixed(4) * 100}%`);
+  /**
+  * Constructor
+  *
+  * @param {object} conf
+  */
+  constructor(conf = {}) {
+    if (conf.hasOwnProperty('log') && typeof conf.log === 'function') {
+      this.log = conf.log
+      delete conf.log
     }
 
-    return !results.filter(_ => _).length ? reset(config, results) : 0
-  });
-}
-
-/**
-* Check if we are connected to the internet by attempting to resolve the dns
-* for one random host.
-*
-* @param {object} config
-*/
-function checkConnection(config) {
-  if (config.verbose) {
-    config.notify(`Checking connection...`);
-  }
-
-  // Choose a host to check at random
-  const host = config.hostsList[Math.floor(Math.random() * config.hostsList.length)];
-
-  return new Promise(r => {
-    try {
-      execSync(`ping -c 1 -w ${config.checkTimeout} ${host}`, { stdio: 'ignore' })
-    } catch (error) {
-      return r(false)
+    this.conf = {
+      // Total samples to collect (all must fail to reset)
+      samples: 4,
+      // Seconds between each sample
+      interval: 1,
+      // Maximum number of seconds a check can take before failing
+      timeout: 1,
+      // Show log messages
+      verbose: false,
+      // Command to run when internet is down
+      reset: 'nmcli radio wifi off && sleep 5 && nmcli radio wifi on',
+      // Hosts from which to randomly pick
+      hosts: 'agost'.split('').map(_ => `${_}.co`),
+      // Check methods from which to randomly use
+      checkMethods: [
+        `nc -z -w $timeout $host 443`,
+        `ping -c 1 -W $timeout $host`,
+      ],
+      // User conf
+      ...conf,
     }
 
-    return r(true)
-  });
+    this.stats = {
+      total: 0,
+      average: 0,
+    }
+
+    this.monitor()
+  }
+
+  /**
+   * Routine to monitor internet
+   */
+  async monitor() {
+    this.log(`Monitoring internet connection... ${this.conf.verbose ? ' (verbose)' : ''}`)
+
+    while (true) {
+      const results = []
+
+      for (let i = 0; i < this.conf.samples; i++) {
+        await new Promise(r => setTimeout(r, this.conf.interval * 1000))
+        results.push(this.check(this.conf.hosts[Math.floor(Math.random() * this.conf.hosts.length)]))
+      }
+
+      const resolved = await Promise.all(results)
+      const average = resolved.reduce((a, b) => a + b) / this.conf.samples;
+      this.stats.total++;
+      this.stats.average = average / this.stats.total
+        + this.stats.average * (this.stats.total - 1) / this.stats.total
+
+      this.log(`Responses:  ${average.toFixed(4) * 100}%, Cum: ${this.stats.average.toFixed(4) * 100}%`);
+
+      if (resolved.filter(_ => _).length) {
+        continue
+      }
+
+      try {
+        this.log(`Resetting wifi...`)
+        execSync(this.conf.reset)
+      } catch (error) {
+        this.log(`Error:  ${error}`)
+      }
+    }
+  }
+
+  check(host) {
+    const command = this.conf.checkMethods[Math.floor(Math.random() * this.conf.checkMethods.length)]
+      .replace('$host', host)
+      .replace('$timeout', this.conf.timeout)
+
+    this.log(`Checking host ${host} [${command}]...`)
+
+    return new Promise(resolve => {
+      try {
+        execSync(command, { stdio: 'ignore' })
+        return resolve(1)
+      } catch (error) {
+        return resolve(0)
+      }
+    });
+  }
+
+  log(message, arr = '') {
+    if (this.conf.verbose) {
+      console.log(`[${new Date().toLocaleTimeString()}] ${message}`, arr)
+    }
+  }
 }
 
-/**
-* Reset the wireless adapter
-*
-* @param {object} config
-* @param {array} checks
-*/
-function reset(config, checks = false) {
-  config.notify(`Running reset...`, checks.map(v => +v).join(''));
-
-  execSync(config.resetCommand);
-}
-
-module.exports = autoReset
+module.exports = wifiReset

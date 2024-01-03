@@ -1,7 +1,7 @@
 {
   "name": "wifi-reset",
-  "version": "1.0.0",
-  "description": "Monitors connection to internet and resets wifi when internet is down",
+  "version": "2.0.0",
+  "description": "Monitors connection to internet via a specified hosts list and cycles wifi adapter when the internet is down",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
